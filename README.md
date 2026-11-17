@@ -2,5 +2,5 @@
 
 基于 Three.js 的交互式月球 3D 预览。
 
-- GitHub Pages: C:\Users\23159
+- GitHub Pages: https://strangeyu911-tech.github.io/Moon3D/
 - 项目详情: https://me.strangeyu.xyz/projects/Moon3D/
