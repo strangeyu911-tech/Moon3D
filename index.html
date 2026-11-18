@@ -342,12 +342,30 @@ let autoRotate = true;
 let wireframe = false;
 let originalMaterials = new Map();
 
+
+/* Load the model from small repository-hosted chunks. */
+async function loadMoonGlb() {
+  const total = 11;
+  const parts = [];
+  for (let i = 1; i <= total; i += 1) {
+    const name = './moon.glb.part-' + String(i).padStart(2, '0');
+    const res = await fetch(name);
+    if (!res.ok) throw new Error('Failed to load ' + name + ': ' + res.status);
+    parts.push(new Uint8Array(await res.arrayBuffer()));
+  }
+  const size = parts.reduce((sum, part) => sum + part.byteLength, 0);
+  const merged = new Uint8Array(size);
+  let offset = 0;
+  for (const part of parts) { merged.set(part, offset); offset += part.byteLength; }
+  return new Blob([merged], { type: 'model/gltf-binary' });
+}
+
 const gltfLoader = new GLTFLoader();
 loaderText.textContent = '加载 moon.glb …';
 statusEl.textContent  = '正在加载模型…';
 
-gltfLoader.load(
-  './moon.glb',
+loadMoonGlb().then((modelBlob) => gltfLoader.load(
+  URL.createObjectURL(modelBlob),
   (gltf) => {
     moon = gltf.scene;
     scene.add(moon);
@@ -379,7 +397,7 @@ gltfLoader.load(
     statusEl.textContent = '❌ 模型加载失败';
     showError('未找到 <strong>moon.glb</strong>。<br>请确认它和 <strong>moon.html</strong> 在同一目录，然后通过本地服务器打开（不能直接双击 file://）。');
   }
-);
+));
 
 /* ===========================================================
  *  7. 模型居中 / 复位
