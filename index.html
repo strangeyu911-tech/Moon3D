@@ -343,20 +343,28 @@ let wireframe = false;
 let originalMaterials = new Map();
 
 
-/* Load the model from small repository-hosted chunks. */
+/* Load the model from small repository-hosted chunks in parallel. */
 async function loadMoonGlb() {
   const total = 11;
-  const parts = [];
-  for (let i = 1; i <= total; i += 1) {
-    const name = './moon.glb.part-' + String(i).padStart(2, '0');
-    const res = await fetch(name);
-    if (!res.ok) throw new Error('Failed to load ' + name + ': ' + res.status);
-    parts.push(new Uint8Array(await res.arrayBuffer()));
-  }
+  let loaded = 0;
+  const parts = await Promise.all(
+    Array.from({ length: total }, async (_, index) => {
+      const name = './moon.glb.part-' + String(index + 1).padStart(2, '0');
+      const res = await fetch(name);
+      if (!res.ok) throw new Error('Failed to load ' + name + ': ' + res.status);
+      const part = new Uint8Array(await res.arrayBuffer());
+      loaded += 1;
+      loaderText.textContent = '加载分片 ' + loaded + '/' + total + ' …';
+      return part;
+    })
+  );
   const size = parts.reduce((sum, part) => sum + part.byteLength, 0);
   const merged = new Uint8Array(size);
   let offset = 0;
-  for (const part of parts) { merged.set(part, offset); offset += part.byteLength; }
+  for (const part of parts) {
+    merged.set(part, offset);
+    offset += part.byteLength;
+  }
   return new Blob([merged], { type: 'model/gltf-binary' });
 }
 
